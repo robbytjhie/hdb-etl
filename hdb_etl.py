@@ -139,18 +139,39 @@ def extra_validation(df):
     rows = []
     for _, r in df.iterrows():
         issues = []
+
+        # 1. Validate resale_price
         if r.get('resale_price',0) <= 0:
             issues.append("invalid resale_price")
+
+        # 2. Validate floor_area_sqm 	
         if r.get('floor_area_sqm',0) <= 0 or r.get('floor_area_sqm',0) > 500:
             issues.append("invalid floor_area_sqm")
+
+        # 3. Validate town
         if r.get('town') not in VALID_TOWNS:
             issues.append("invalid town")
+
+        # 4. Validate flat_type
         if r.get('flat_type') not in VALID_FLAT_TYPES:
             issues.append("invalid flat_type")
+
+        # 5. Validate flat_model
         if r.get('flat_model') not in VALID_FLAT_MODELS:
             issues.append("invalid flat_model")
+
+        # 6. Validate storey_range format (e.g. "01 TO 03")
         if not re.match(VALID_STOREY_FORMAT, str(r.get('storey_range'))):
             issues.append("invalid storey_range")
+
+        # 7. Validate month — must be within Mar 2012 to Dec 2016 (year + month check)
+        month_val = r.get('month')
+        if pd.isna(month_val):
+            issues.append("missing month")
+        else:
+            month_period = pd.Period(month_val, freq="M")
+            if month_period < EXPECTED_START or month_period > EXPECTED_END:
+                issues.append(f"month out of range: {month_period} (expected {EXPECTED_START} to {EXPECTED_END})")
         if issues:
             row_copy = r.copy()
             row_copy['comments'] = "; ".join(issues)
